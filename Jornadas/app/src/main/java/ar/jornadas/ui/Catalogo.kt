@@ -13,25 +13,37 @@ import ar.jornadas.data.Charla
 
 @Composable
 fun Catalogo(model: ProgramaModel, abrir: (String) -> Unit) {
-    LaunchedEffect(Unit) { model.recargar() }
     val dia by model.dia.collectAsStateWithLifecycle()
-    var tema by remember { mutableStateOf("Todos") }
-    val fichas by model.charlas.collectAsStateWithLifecycle()
-    val aviso by model.aviso.collectAsStateWithLifecycle()
+    val tema by model.tema.collectAsStateWithLifecycle()
+    val cartelera by model.cartelera.collectAsStateWithLifecycle()
+    val sinConexion by model.sinConexion.collectAsStateWithLifecycle()
     val cargando by model.cargando.collectAsStateWithLifecycle()
-    Selector(listOf("Ambos días", "Día 1", "Día 2"), dia) { model.dia.value = it }
+    Selector(listOf("Ambos días", "Día 1", "Día 2"), dia) { model.elegirDia(it) }
     val temas = listOf("Todos", "Android", "Datos", "Calidad")
-    Selector(temas, temas.indexOf(tema)) { tema = temas[it] }
+    Selector(temas, temas.indexOf(tema)) { model.elegirTema(temas[it]) }
     TextButton(onClick = model::recargar) { Text("Actualizar") }
     if (cargando) LinearProgressIndicator(Modifier.fillMaxWidth())
-    if (aviso.isNotEmpty()) {
-        Text(aviso)
-        OutlinedButton(onClick = model::recargar) { Text("Reintentar") }
-    } else {
-        Grilla(fichas.filter { (dia == 0 || it.dia == dia) && (tema == "Todos" || it.tema == tema) }, abrir)
+
+    val datos = cartelera
+    when {
+        datos == null -> Unit
+        sinConexion && !datos.hayEdicion -> {
+            Text("No se pudo consultar el programa.")
+            OutlinedButton(onClick = model::recargar) { Text("Reintentar") }
+        }
+        else -> {
+            if (sinConexion) Text("Sin conexión: se están usando datos guardados.")
+            val visibles = remember(datos.charlas, dia, tema) {
+                datos.charlas.filter { (dia == 0 || it.dia == dia) && (tema == "Todos" || it.tema == tema) }
+            }
+            when {
+                datos.charlas.isEmpty() -> if (datos.hayEdicion) Text("Sin charlas programadas.")
+                visibles.isEmpty() -> Text("No hay charlas para estos filtros.")
+                else -> Grilla(visibles, abrir)
+            }
+        }
     }
 }
-
 @Composable
 private fun Selector(opciones: List<String>, indice: Int, elegir: (Int) -> Unit) {
     Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {

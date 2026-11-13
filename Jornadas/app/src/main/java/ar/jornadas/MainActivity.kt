@@ -15,10 +15,6 @@ class MainActivity : ComponentActivity() {
             intent.removeExtra("servicio_disponible")
         }
         setContent { Portada(model) }
-    }
-
-    override fun onStart() {
-        super.onStart()
-        model.recargar()
+        model.cargarAlAbrir()
     }
 }

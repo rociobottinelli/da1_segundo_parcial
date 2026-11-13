@@ -16,7 +16,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 fun Portada(model: ProgramaModel) {
     var seccion by rememberSaveable { mutableStateOf("Programa") }
     var detalle by rememberSaveable { mutableStateOf<String?>(null) }
-    val charlas by model.charlas.collectAsStateWithLifecycle()
+    val cartelera by model.cartelera.collectAsStateWithLifecycle()
+    val charlas = cartelera?.charlas.orEmpty()
     BackHandler(detalle != null || seccion != "Programa") {
         if (detalle != null) detalle = null else seccion = "Programa"
     }
@@ -36,7 +37,9 @@ fun Portada(model: ProgramaModel) {
                 if (detalle != null) {
                     TextButton(onClick = { detalle = null }) { Text("Volver") }
                     val ficha = charlas.find { it.id == detalle }
-                    if (ficha != null) Column(Modifier.verticalScroll(rememberScrollState()),
+                    if (ficha == null) {
+                        if (cartelera != null) Text("Esta charla ya no está en el programa.")
+                    } else Column(Modifier.verticalScroll(rememberScrollState()),
                         verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         Text(ficha.titulo, style = MaterialTheme.typography.headlineMedium)
                         Text("Día ${ficha.dia} · ${ficha.hora} · ${ficha.sala}")
@@ -52,7 +55,7 @@ fun Portada(model: ProgramaModel) {
                         "Programa" -> Catalogo(model) { detalle = it }
                         "Mi agenda" -> {
                             val guardadas = charlas.filter { it.favorita }
-                            if (guardadas.isEmpty()) Text("Todavía no agregaste charlas.")
+                            if (cartelera != null && guardadas.isEmpty()) Text("Todavía no agregaste charlas.")
                             Grilla(guardadas) { detalle = it }
                         }
                         else -> Mesa(model.mesa)
